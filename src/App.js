@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 
 const axiosGitHubGraphQL = axios.create({
-  baseURL: 'https://api.github.com',
+  baseURL: 'https://api.github.com/graphql',
   headers: {
     Authorization: `bearer ${
       process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN
@@ -57,7 +57,7 @@ const getAddReactionToIssueMutation = issueId => `
 `;
 
 const addReactionToIssue = issueId => {
-  return axiosGitHubGraphQL.post('/graphql', {
+  return axiosGitHubGraphQL.post('', {
     query: getAddReactionToIssueMutation(issueId),
   });
 };
@@ -65,7 +65,7 @@ const addReactionToIssue = issueId => {
 const getIssuesOfRepository = path => {
   const [organization, repository] = path.split('/');
 
-  return axiosGitHubGraphQL.post('/graphql', {
+  return axiosGitHubGraphQL.post('', {
     query: getIssuesOfRepositoryQuery(organization, repository),
   });
 };
