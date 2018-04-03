@@ -10,7 +10,7 @@ const axiosGitHubGraphQL = axios.create({
   },
 });
 
-const title = 'Simple React GraphQL GitHub Client';
+const title = 'React GraphQL GitHub Client';
 
 const getIssuesOfRepositoryQuery = (organization, repository) => `
   {
@@ -57,7 +57,7 @@ const getAddReactionToIssueMutation = issueId => `
 `;
 
 const addReactionToIssue = issueId => {
-  axiosGitHubGraphQL.post('/graphql', {
+  return axiosGitHubGraphQL.post('/graphql', {
     query: getAddReactionToIssueMutation(issueId),
   });
 };
@@ -68,6 +68,51 @@ const getIssuesOfRepository = path => {
   return axiosGitHubGraphQL.post('/graphql', {
     query: getIssuesOfRepositoryQuery(organization, repository),
   });
+};
+
+const updatedIssue = (issue, newReaction) => {
+  return {
+    ...issue,
+    node: {
+      ...issue.node,
+      reactions: {
+        ...issue.node.reactions,
+        edges: [...issue.node.reactions.edges, { node: newReaction }],
+      },
+    },
+  };
+};
+
+const updatedIssueInState = mutationResult => state => {
+  const { issues } = state.result.organization.repository;
+  const { reaction, subject } = mutationResult.data.data.addReaction;
+
+  const newReaction = { content: reaction.content, id: subject.id };
+
+  const updatedIssues = issues.edges.map(issue => {
+    if (issue.node.id === subject.id) {
+      return updatedIssue(issue, newReaction);
+    } else {
+      return issue;
+    }
+  });
+
+  return {
+    ...state,
+    result: {
+      ...state.result,
+      organization: {
+        ...state.result.organization,
+        repository: {
+          ...state.result.organization.repository,
+          issues: {
+            ...state.result.organization.repository.issues,
+            edges: updatedIssues,
+          },
+        },
+      },
+    },
+  };
 };
 
 class App extends Component {
@@ -100,6 +145,12 @@ class App extends Component {
     );
   };
 
+  onAddReactionToIssue = issueId => {
+    addReactionToIssue(issueId).then(mutationResult =>
+      this.setState(updatedIssueInState(mutationResult)),
+    );
+  };
+
   render() {
     const { input, result, errors } = this.state;
 
@@ -127,6 +178,7 @@ class App extends Component {
           <Organization
             organization={result.organization}
             errors={errors}
+            onAddReactionToIssue={this.onAddReactionToIssue}
           />
         ) : (
           <p>No information yet ...</p>
@@ -136,7 +188,11 @@ class App extends Component {
   }
 }
 
-const Organization = ({ organization, errors }) => {
+const Organization = ({
+  organization,
+  errors,
+  onAddReactionToIssue,
+}) => {
   if (errors) {
     return (
       <p>
@@ -152,12 +208,15 @@ const Organization = ({ organization, errors }) => {
         <strong>Issues from Organization:</strong>
         {organization.name} ({organization.url})
       </p>
-      <Repository repository={organization.repository} />
+      <Repository
+        repository={organization.repository}
+        onAddReactionToIssue={onAddReactionToIssue}
+      />
     </div>
   );
 };
 
-const Repository = ({ repository }) => (
+const Repository = ({ repository, onAddReactionToIssue }) => (
   <div>
     <p>
       <strong>In Repository:</strong>
@@ -171,7 +230,7 @@ const Repository = ({ repository }) => (
 
           <button
             type="button"
-            onClick={() => addReactionToIssue(issue.node.id)}
+            onClick={() => onAddReactionToIssue(issue.node.id)}
           >
             Say "Horray"
           </button>
