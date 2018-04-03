@@ -4,7 +4,9 @@ import axios from 'axios';
 const axiosGitHubGraphQL = axios.create({
   baseURL: 'https://api.github.com',
   headers: {
-    'Authorization': `bearer ${process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN}`,
+    Authorization: `bearer ${
+      process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN
+    }`,
   },
 });
 
@@ -18,12 +20,13 @@ const getIssuesOfRepositoryQuery = (organization, repository) => `
       repository(name: "${repository}") {
         name
         url
-        issues(last: 3, states: [OPEN]) {
+        issues(last: 5, states: [OPEN]) {
           edges {
             cursor
             node {
               id
               title
+              url
               reactions(last: 3) {
                 edges {
                   node {
@@ -38,9 +41,9 @@ const getIssuesOfRepositoryQuery = (organization, repository) => `
       }
     }
   }
-`
+`;
 
-const getAddReactionToIssueQuery = (issueId) => `
+const getAddReactionToIssueMutation = issueId => `
   mutation {
     addReaction(input:{subjectId:"${issueId}",content:HOORAY}) {
       reaction {
@@ -51,108 +54,137 @@ const getAddReactionToIssueQuery = (issueId) => `
       }
     }
   }
-`
+`;
 
-const addReactionToIssue = (issueId) => {
-  axiosGitHubGraphQL
-    .post('/graphql', {
-      query: getAddReactionToIssueQuery(issueId)
-    })
-  }
+const addReactionToIssue = issueId => {
+  axiosGitHubGraphQL.post('/graphql', {
+    query: getAddReactionToIssueMutation(issueId),
+  });
+};
 
-const getIssuesOfRepository = (path) => {
+const getIssuesOfRepository = path => {
   const [organization, repository] = path.split('/');
 
-  return axiosGitHubGraphQL
-    .post('/graphql', {
-      query: getIssuesOfRepositoryQuery(organization, repository)
-    });
-}
+  return axiosGitHubGraphQL.post('/graphql', {
+    query: getIssuesOfRepositoryQuery(organization, repository),
+  });
+};
 
 class App extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      input: 'the-road-to-learn-react/the-road-to-learn-react',
-      data: null,
-      errors: null,
-    };
-
-    this.onSubmit = this.onSubmit.bind(this);
-  }
+  state = {
+    input: 'the-road-to-learn-react/the-road-to-learn-react',
+    result: null,
+    errors: null,
+  };
 
   componentDidMount() {
     this.onFetchGitHub(this.state.input);
   }
 
-  onSubmit(event) {
+  onChange = event => {
+    this.setState({ input: event.target.value });
+  };
+
+  onSubmit = event => {
     this.onFetchGitHub(this.state.input);
 
     event.preventDefault();
-  }
+  };
 
-  onFetchGitHub(input) {
-    getIssuesOfRepository(input)
-      .then(result => this.setState(() => ({
-        data: result.data.data,
+  onFetchGitHub = input => {
+    getIssuesOfRepository(input).then(result =>
+      this.setState(() => ({
+        result: result.data.data,
         errors: result.data.errors,
-      })));
-  }
+      })),
+    );
+  };
 
   render() {
-    const { data, errors, input } = this.state;
+    const { input, result, errors } = this.state;
 
     return (
       <div>
         <h1>{title}</h1>
 
         <form onSubmit={this.onSubmit}>
-          <label htmlFor="repositoryUrl">Show open issues for https://github.com/</label>
-          {' '}
+          <label htmlFor="url">
+            Show open issues for https://github.com/
+          </label>
           <input
-            id="repositoryUrl"
+            id="url"
             type="text"
             value={input}
-            onChange={(event) => this.setState({ input: event.target.value })}
+            onChange={this.onChange}
             style={{ width: '300px' }}
           />
           <button type="submit">Search</button>
         </form>
 
-        { errors
-          ? <p><strong>Somethine went wrong:</strong> {errors[0].message}</p>
-          : <Organization { ...data } />
-        }
+        <hr />
+
+        {result ? (
+          <Organization
+            organization={result.organization}
+            errors={errors}
+          />
+        ) : (
+          <p>No information yet ...</p>
+        )}
       </div>
     );
   }
 }
 
-const Organization = ({ organization }) =>
-  organization ? (
-    <Repository { ...organization.repository } />
-  ) : (
-    <p>No data yet ...</p>
-  )
+const Organization = ({ organization, errors }) => {
+  if (errors) {
+    return (
+      <p>
+        <strong>Something went wrong:</strong>
+        {errors.map(error => error.message).join(' ')}
+      </p>
+    );
+  }
 
-const Repository = ({ issues }) =>
+  return (
+    <div>
+      <p>
+        <strong>Issues from Organization:</strong>
+        {organization.name} ({organization.url})
+      </p>
+      <Repository repository={organization.repository} />
+    </div>
+  );
+};
+
+const Repository = ({ repository }) => (
   <div>
-    <ul>
-      {issues.edges.map(edge =>
-        <li key={edge.node.id}>
-          <strong>{edge.node.title}</strong>
+    <p>
+      <strong>In Repository:</strong>
+      {repository.name} ({repository.url})
+    </p>
 
-          <button type="button" onClick={() => addReactionToIssue(edge.node.id)}>Horray</button>
+    <ul>
+      {repository.issues.edges.map(issue => (
+        <li key={issue.node.id}>
+          <a href={issue.node.url}>{issue.node.title}</a>
+
+          <button
+            type="button"
+            onClick={() => addReactionToIssue(issue.node.id)}
+          >
+            Say "Horray"
+          </button>
 
           <ul>
-            {edge.node.reactions.edges.map(reaction =>
-              <span key={reaction.node.id}>{reaction.node.content}</span>
-            )}
+            {issue.node.reactions.edges.map(reaction => (
+              <li key={reaction.node.id}>{reaction.node.content}</li>
+            ))}
           </ul>
         </li>
-      )}
+      ))}
     </ul>
   </div>
+);
 
 export default App;
