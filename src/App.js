@@ -114,27 +114,27 @@ const updatedIssueInState = mutationResult => state => {
 
 class App extends Component {
   state = {
-    input: 'the-road-to-learn-react/the-road-to-learn-react',
+    path: 'the-road-to-learn-react/the-road-to-learn-react',
     organization: null,
     errors: null,
   };
 
   componentDidMount() {
-    this.onFetchFromGitHub(this.state.input);
+    this.onFetchFromGitHub(this.state.path);
   }
 
   onChange = event => {
-    this.setState({ input: event.target.value });
+    this.setState({ path: event.target.value });
   };
 
   onSubmit = event => {
-    this.onFetchFromGitHub(this.state.input);
+    this.onFetchFromGitHub(this.state.path);
 
     event.preventDefault();
   };
 
-  onFetchFromGitHub = input => {
-    getIssuesOfRepository(input).then(result =>
+  onFetchFromGitHub = path => {
+    getIssuesOfRepository(path).then(result =>
       this.setState(() => ({
         organization: result.data.data.organization,
         errors: result.data.errors,
@@ -149,7 +149,7 @@ class App extends Component {
   };
 
   render() {
-    const { input, organization, errors } = this.state;
+    const { path, organization, errors } = this.state;
 
     return (
       <div>
@@ -162,7 +162,7 @@ class App extends Component {
           <input
             id="url"
             type="text"
-            value={input}
+            value={path}
             onChange={this.onChange}
             style={{ width: '300px' }}
           />
