@@ -84,7 +84,7 @@ const updatedIssue = (issue, newReaction) => {
 };
 
 const updatedIssueInState = mutationResult => state => {
-  const { issues } = state.result.organization.repository;
+  const { issues } = state.organization.repository;
   const { reaction, subject } = mutationResult.data.data.addReaction;
 
   const newReaction = { content: reaction.content, id: subject.id };
@@ -99,16 +99,13 @@ const updatedIssueInState = mutationResult => state => {
 
   return {
     ...state,
-    result: {
-      ...state.result,
-      organization: {
-        ...state.result.organization,
-        repository: {
-          ...state.result.organization.repository,
-          issues: {
-            ...state.result.organization.repository.issues,
-            edges: updatedIssues,
-          },
+    organization: {
+      ...state.organization,
+      repository: {
+        ...state.organization.repository,
+        issues: {
+          ...state.organization.repository.issues,
+          edges: updatedIssues,
         },
       },
     },
@@ -118,12 +115,12 @@ const updatedIssueInState = mutationResult => state => {
 class App extends Component {
   state = {
     input: 'the-road-to-learn-react/the-road-to-learn-react',
-    result: null,
+    organization: null,
     errors: null,
   };
 
   componentDidMount() {
-    this.onFetchGitHub(this.state.input);
+    this.onFetchFromGitHub(this.state.input);
   }
 
   onChange = event => {
@@ -131,15 +128,15 @@ class App extends Component {
   };
 
   onSubmit = event => {
-    this.onFetchGitHub(this.state.input);
+    this.onFetchFromGitHub(this.state.input);
 
     event.preventDefault();
   };
 
-  onFetchGitHub = input => {
+  onFetchFromGitHub = input => {
     getIssuesOfRepository(input).then(result =>
       this.setState(() => ({
-        result: result.data.data,
+        organization: result.data.data.organization,
         errors: result.data.errors,
       })),
     );
@@ -152,7 +149,7 @@ class App extends Component {
   };
 
   render() {
-    const { input, result, errors } = this.state;
+    const { input, organization, errors } = this.state;
 
     return (
       <div>
@@ -174,9 +171,9 @@ class App extends Component {
 
         <hr />
 
-        {result ? (
+        {organization ? (
           <Organization
-            organization={result.organization}
+            organization={organization}
             errors={errors}
             onAddReactionToIssue={this.onAddReactionToIssue}
           />
