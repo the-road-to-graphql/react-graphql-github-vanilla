@@ -203,7 +203,7 @@ const Organization = ({
     <div>
       <p>
         <strong>Issues from Organization:</strong>
-        {organization.name} ({organization.url})
+        <a href={organization.url}>{organization.name}</a>
       </p>
       <Repository
         repository={organization.repository}
@@ -217,7 +217,7 @@ const Repository = ({ repository, onAddReactionToIssue }) => (
   <div>
     <p>
       <strong>In Repository:</strong>
-      {repository.name} ({repository.url})
+      <a href={repository.url}>{repository.name}</a>
     </p>
 
     <ul>
