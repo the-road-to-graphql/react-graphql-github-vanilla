@@ -12,12 +12,12 @@ const axiosGitHubGraphQL = axios.create({
 
 const title = 'React GraphQL GitHub Client';
 
-const getIssuesOfRepositoryQuery = (organization, repository) => `
-  {
-    organization(login: "${organization}") {
+const issuesOfRepositoryQuery = `
+  query ($organization: String!, $repository: String!) {
+    organization(login: $organization) {
       name
       url
-      repository(name: "${repository}") {
+      repository(name: $repository) {
         name
         url
         issues(last: 5, states: [OPEN]) {
@@ -43,9 +43,9 @@ const getIssuesOfRepositoryQuery = (organization, repository) => `
   }
 `;
 
-const getAddReactionToIssueMutation = issueId => `
-  mutation {
-    addReaction(input:{subjectId:"${issueId}",content:HOORAY}) {
+const addReactionToIssueMutation = `
+  mutation ($issueId: ID!) {
+    addReaction(input:{subjectId:$issueId,content:HOORAY}) {
       reaction {
         content
       }
@@ -58,7 +58,8 @@ const getAddReactionToIssueMutation = issueId => `
 
 const addReactionToIssue = issueId => {
   return axiosGitHubGraphQL.post('', {
-    query: getAddReactionToIssueMutation(issueId),
+    query: addReactionToIssueMutation,
+    variables: { issueId },
   });
 };
 
@@ -66,7 +67,8 @@ const getIssuesOfRepository = path => {
   const [organization, repository] = path.split('/');
 
   return axiosGitHubGraphQL.post('', {
-    query: getIssuesOfRepositoryQuery(organization, repository),
+    query: issuesOfRepositoryQuery,
+    variables: { organization, repository },
   });
 };
 
