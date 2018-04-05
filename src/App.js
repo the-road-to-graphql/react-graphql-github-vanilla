@@ -99,29 +99,32 @@ const removeStarFromRepository = repositoryId => {
   });
 };
 
-const resolveIssuesQuery = queryResult => state => {
-  const oldIssues = state.organization
-    ? state.organization.repository.issues.edges
-    : [];
+const resolveIssuesQuery = (queryResult, cursor) => state => {
+  const { data, errors } = queryResult.data;
 
-  const {
-    edges: newIssues,
-  } = queryResult.data.data.organization.repository.issues;
+  if (!cursor) {
+    return {
+      organization: data.organization,
+      errors,
+    };
+  }
 
+  const { edges: oldIssues } = state.organization.repository.issues;
+  const { edges: newIssues } = data.organization.repository.issues;
   const updatedIssues = [...oldIssues, ...newIssues];
 
   return {
     organization: {
-      ...queryResult.data.data.organization,
+      ...data.organization,
       repository: {
-        ...queryResult.data.data.organization.repository,
+        ...data.organization.repository,
         issues: {
-          ...queryResult.data.data.organization.repository.issues,
+          ...data.organization.repository.issues,
           edges: updatedIssues,
         },
       },
     },
-    errors: queryResult.data.errors,
+    errors,
   };
 };
 
@@ -192,7 +195,7 @@ class App extends Component {
 
   onFetchFromGitHub = (path, cursor) => {
     getIssuesOfRepository(path, cursor).then(queryResult =>
-      this.setState(resolveIssuesQuery(queryResult)),
+      this.setState(resolveIssuesQuery(queryResult, cursor)),
     );
   };
 
