@@ -13,7 +13,7 @@ const axiosGitHubGraphQL = axios.create({
 const title = 'React GraphQL GitHub Client';
 
 const issuesOfRepositoryQuery = `
-  query ($organization: String!, $repository: String!) {
+  query ($organization: String!, $repository: String!, $cursor: String) {
     organization(login: $organization) {
       name
       url
@@ -25,9 +25,8 @@ const issuesOfRepositoryQuery = `
           totalCount
         }
         viewerHasStarred
-        issues(last: 5, states: [OPEN]) {
+        issues(first: 5, after: $cursor, states: [OPEN]) {
           edges {
-            cursor
             node {
               id
               title
@@ -41,6 +40,11 @@ const issuesOfRepositoryQuery = `
                 }
               }
             }
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            hasNextPage
           }
         }
       }
@@ -68,13 +72,37 @@ const removeStarToRepositoryMutation = `
   }
 `;
 
-const getIssuesOfRepository = path => {
+const getIssuesOfRepository = (path, cursor) => {
   const [organization, repository] = path.split('/');
 
   return axiosGitHubGraphQL.post('', {
     query: issuesOfRepositoryQuery,
-    variables: { organization, repository },
+    variables: { organization, repository, cursor },
   });
+};
+
+const resolveIssuesQuery = queryResult => state => {
+  const oldIssues = state.organization
+    ? state.organization.repository.issues.edges
+    : [];
+
+  const {
+    edges: newIssues,
+  } = queryResult.data.data.organization.repository.issues;
+
+  return {
+    organization: {
+      ...queryResult.data.data.organization,
+      repository: {
+        ...queryResult.data.data.organization.repository,
+        issues: {
+          ...queryResult.data.data.organization.repository.issues,
+          edges: [...oldIssues, ...newIssues],
+        },
+      },
+    },
+    errors: queryResult.data.errors,
+  };
 };
 
 const addStarToRepository = repositoryId => {
@@ -156,12 +184,9 @@ class App extends Component {
     event.preventDefault();
   };
 
-  onFetchFromGitHub = path => {
-    getIssuesOfRepository(path).then(result =>
-      this.setState(() => ({
-        organization: result.data.data.organization,
-        errors: result.data.errors,
-      })),
+  onFetchFromGitHub = (path, cursor) => {
+    getIssuesOfRepository(path, cursor).then(queryResult =>
+      this.setState(resolveIssuesQuery(queryResult)),
     );
   };
 
@@ -175,6 +200,14 @@ class App extends Component {
         this.setState(resolveAddStarMutation(mutationResult)),
       );
     }
+  };
+
+  onFetchMoreIssues = () => {
+    const {
+      endCursor,
+    } = this.state.organization.repository.issues.pageInfo;
+
+    this.onFetchFromGitHub(this.state.path, endCursor);
   };
 
   render() {
@@ -205,6 +238,7 @@ class App extends Component {
             organization={organization}
             errors={errors}
             onStarRepository={this.onStarRepository}
+            onFetchMoreIssues={this.onFetchMoreIssues}
           />
         ) : (
           <p>No information yet ...</p>
@@ -214,7 +248,12 @@ class App extends Component {
   }
 }
 
-const Organization = ({ organization, errors, onStarRepository }) => {
+const Organization = ({
+  organization,
+  errors,
+  onStarRepository,
+  onFetchMoreIssues,
+}) => {
   if (errors) {
     return (
       <p>
@@ -233,12 +272,17 @@ const Organization = ({ organization, errors, onStarRepository }) => {
       <Repository
         repository={organization.repository}
         onStarRepository={onStarRepository}
+        onFetchMoreIssues={onFetchMoreIssues}
       />
     </div>
   );
 };
 
-const Repository = ({ repository, onStarRepository }) => (
+const Repository = ({
+  repository,
+  onStarRepository,
+  onFetchMoreIssues,
+}) => (
   <div>
     <p>
       <strong>In Repository:</strong>
@@ -255,8 +299,17 @@ const Repository = ({ repository, onStarRepository }) => (
       {repository.viewerHasStarred ? ' Unstar' : ' Star'}
     </button>
 
+    <Issues
+      issues={repository.issues}
+      onFetchMoreIssues={onFetchMoreIssues}
+    />
+  </div>
+);
+
+const Issues = ({ issues, onFetchMoreIssues }) => (
+  <div>
     <ul>
-      {repository.issues.edges.map(issue => (
+      {issues.edges.map(issue => (
         <li key={issue.node.id}>
           <a href={issue.node.url}>{issue.node.title}</a>
 
@@ -268,6 +321,12 @@ const Repository = ({ repository, onStarRepository }) => (
         </li>
       ))}
     </ul>
+
+    <hr />
+
+    {issues.pageInfo.hasNextPage && (
+      <button onClick={onFetchMoreIssues}>More</button>
+    )}
   </div>
 );
 
