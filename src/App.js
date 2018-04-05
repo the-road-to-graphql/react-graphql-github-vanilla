@@ -165,7 +165,7 @@ class App extends Component {
     );
   };
 
-  onStarToRepository = (repositoryId, viewerHasStarred) => {
+  onStarRepository = (repositoryId, viewerHasStarred) => {
     if (viewerHasStarred) {
       removeStarFromRepository(repositoryId).then(mutationResult =>
         this.setState(resolveRemoveStarMutation(mutationResult)),
@@ -204,7 +204,7 @@ class App extends Component {
           <Organization
             organization={organization}
             errors={errors}
-            onStarToRepository={this.onStarToRepository}
+            onStarRepository={this.onStarRepository}
           />
         ) : (
           <p>No information yet ...</p>
@@ -214,11 +214,7 @@ class App extends Component {
   }
 }
 
-const Organization = ({
-  organization,
-  errors,
-  onStarToRepository,
-}) => {
+const Organization = ({ organization, errors, onStarRepository }) => {
   if (errors) {
     return (
       <p>
@@ -236,13 +232,13 @@ const Organization = ({
       </p>
       <Repository
         repository={organization.repository}
-        onStarToRepository={onStarToRepository}
+        onStarRepository={onStarRepository}
       />
     </div>
   );
 };
 
-const Repository = ({ repository, onStarToRepository }) => (
+const Repository = ({ repository, onStarRepository }) => (
   <div>
     <p>
       <strong>In Repository:</strong>
@@ -252,7 +248,7 @@ const Repository = ({ repository, onStarToRepository }) => (
     <button
       type="button"
       onClick={() =>
-        onStarToRepository(repository.id, repository.viewerHasStarred)
+        onStarRepository(repository.id, repository.viewerHasStarred)
       }
     >
       {repository.stargazers.totalCount}
