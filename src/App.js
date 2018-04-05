@@ -18,8 +18,13 @@ const issuesOfRepositoryQuery = `
       name
       url
       repository(name: $repository) {
+        id
         name
         url
+        stargazers {
+          totalCount
+        }
+        viewerHasStarred
         issues(last: 5, states: [OPEN]) {
           edges {
             cursor
@@ -56,10 +61,27 @@ const addReactionToIssueMutation = `
   }
 `;
 
+const addStarToRepositoryMutation = `
+  mutation ($repositoryId: ID!) {
+    addStar(input:{starrableId:$repositoryId}) {
+      starrable {
+        viewerHasStarred
+      }
+    }
+  }
+`;
+
 const addReactionToIssue = issueId => {
   return axiosGitHubGraphQL.post('', {
     query: addReactionToIssueMutation,
     variables: { issueId },
+  });
+};
+
+const addStarToRepository = repositoryId => {
+  return axiosGitHubGraphQL.post('', {
+    query: addStarToRepositoryMutation,
+    variables: { repositoryId },
   });
 };
 
@@ -114,6 +136,23 @@ const updatedIssueInState = mutationResult => state => {
   };
 };
 
+const resolveAddStarMutation = mutationResult => state => {
+  const {
+    viewerHasStarred,
+  } = mutationResult.data.data.addStar.starrable;
+
+  return {
+    ...state,
+    organization: {
+      ...state.organization,
+      repository: {
+        ...state.organization.repository,
+        viewerHasStarred,
+      },
+    },
+  };
+};
+
 class App extends Component {
   state = {
     path: 'the-road-to-learn-react/the-road-to-learn-react',
@@ -150,6 +189,12 @@ class App extends Component {
     );
   };
 
+  onAddStarToRepository = repositoryId => {
+    addStarToRepository(repositoryId).then(mutationResult =>
+      this.setState(resolveAddStarMutation(mutationResult)),
+    );
+  };
+
   render() {
     const { path, organization, errors } = this.state;
 
@@ -178,6 +223,7 @@ class App extends Component {
             organization={organization}
             errors={errors}
             onAddReactionToIssue={this.onAddReactionToIssue}
+            onAddStarToRepository={this.onAddStarToRepository}
           />
         ) : (
           <p>No information yet ...</p>
@@ -191,6 +237,7 @@ const Organization = ({
   organization,
   errors,
   onAddReactionToIssue,
+  onAddStarToRepository,
 }) => {
   if (errors) {
     return (
@@ -210,17 +257,29 @@ const Organization = ({
       <Repository
         repository={organization.repository}
         onAddReactionToIssue={onAddReactionToIssue}
+        onAddStarToRepository={onAddStarToRepository}
       />
     </div>
   );
 };
 
-const Repository = ({ repository, onAddReactionToIssue }) => (
+const Repository = ({
+  repository,
+  onAddReactionToIssue,
+  onAddStarToRepository,
+}) => (
   <div>
     <p>
       <strong>In Repository:</strong>
       <a href={repository.url}>{repository.name}</a>
     </p>
+
+    <button
+      type="button"
+      onClick={() => onAddStarToRepository(repository.id)}
+    >
+      {repository.viewerHasStarred ? 'Unstar' : 'Star'}
+    </button>
 
     <ul>
       {repository.issues.edges.map(issue => (
