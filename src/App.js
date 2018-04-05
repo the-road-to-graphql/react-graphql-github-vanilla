@@ -13,7 +13,11 @@ const axiosGitHubGraphQL = axios.create({
 const title = 'React GraphQL GitHub Client';
 
 const issuesOfRepositoryQuery = `
-  query ($organization: String!, $repository: String!, $cursor: String) {
+  query (
+    $organization: String!,
+    $repository: String!,
+    $cursor: String
+  ) {
     organization(login: $organization) {
       name
       url
@@ -81,30 +85,6 @@ const getIssuesOfRepository = (path, cursor) => {
   });
 };
 
-const resolveIssuesQuery = queryResult => state => {
-  const oldIssues = state.organization
-    ? state.organization.repository.issues.edges
-    : [];
-
-  const {
-    edges: newIssues,
-  } = queryResult.data.data.organization.repository.issues;
-
-  return {
-    organization: {
-      ...queryResult.data.data.organization,
-      repository: {
-        ...queryResult.data.data.organization.repository,
-        issues: {
-          ...queryResult.data.data.organization.repository.issues,
-          edges: [...oldIssues, ...newIssues],
-        },
-      },
-    },
-    errors: queryResult.data.errors,
-  };
-};
-
 const addStarToRepository = repositoryId => {
   return axiosGitHubGraphQL.post('', {
     query: addStarToRepositoryMutation,
@@ -117,6 +97,32 @@ const removeStarFromRepository = repositoryId => {
     query: removeStarToRepositoryMutation,
     variables: { repositoryId },
   });
+};
+
+const resolveIssuesQuery = queryResult => state => {
+  const oldIssues = state.organization
+    ? state.organization.repository.issues.edges
+    : [];
+
+  const {
+    edges: newIssues,
+  } = queryResult.data.data.organization.repository.issues;
+
+  const updatedIssues = [...oldIssues, ...newIssues];
+
+  return {
+    organization: {
+      ...queryResult.data.data.organization,
+      repository: {
+        ...queryResult.data.data.organization.repository,
+        issues: {
+          ...queryResult.data.data.organization.repository.issues,
+          edges: updatedIssues,
+        },
+      },
+    },
+    errors: queryResult.data.errors,
+  };
 };
 
 const resolveAddStarMutation = mutationResult => state => {
