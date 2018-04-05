@@ -48,19 +48,6 @@ const issuesOfRepositoryQuery = `
   }
 `;
 
-const addReactionToIssueMutation = `
-  mutation ($issueId: ID!) {
-    addReaction(input:{subjectId:$issueId,content:HOORAY}) {
-      reaction {
-        content
-      }
-      subject {
-        id
-      }
-    }
-  }
-`;
-
 const addStarToRepositoryMutation = `
   mutation ($repositoryId: ID!) {
     addStar(input:{starrableId:$repositoryId}) {
@@ -70,13 +57,6 @@ const addStarToRepositoryMutation = `
     }
   }
 `;
-
-const addReactionToIssue = issueId => {
-  return axiosGitHubGraphQL.post('', {
-    query: addReactionToIssueMutation,
-    variables: { issueId },
-  });
-};
 
 const addStarToRepository = repositoryId => {
   return axiosGitHubGraphQL.post('', {
@@ -92,48 +72,6 @@ const getIssuesOfRepository = path => {
     query: issuesOfRepositoryQuery,
     variables: { organization, repository },
   });
-};
-
-const updatedIssue = (issue, newReaction) => {
-  return {
-    ...issue,
-    node: {
-      ...issue.node,
-      reactions: {
-        ...issue.node.reactions,
-        edges: [...issue.node.reactions.edges, { node: newReaction }],
-      },
-    },
-  };
-};
-
-const updatedIssueInState = mutationResult => state => {
-  const { issues } = state.organization.repository;
-  const { reaction, subject } = mutationResult.data.data.addReaction;
-
-  const newReaction = { content: reaction.content, id: subject.id };
-
-  const updatedIssues = issues.edges.map(issue => {
-    if (issue.node.id === subject.id) {
-      return updatedIssue(issue, newReaction);
-    } else {
-      return issue;
-    }
-  });
-
-  return {
-    ...state,
-    organization: {
-      ...state.organization,
-      repository: {
-        ...state.organization.repository,
-        issues: {
-          ...state.organization.repository.issues,
-          edges: updatedIssues,
-        },
-      },
-    },
-  };
 };
 
 const resolveAddStarMutation = mutationResult => state => {
@@ -183,13 +121,7 @@ class App extends Component {
     );
   };
 
-  onAddReactionToIssue = issueId => {
-    addReactionToIssue(issueId).then(mutationResult =>
-      this.setState(updatedIssueInState(mutationResult)),
-    );
-  };
-
-  onAddStarToRepository = repositoryId => {
+  onStarToRepository = repositoryId => {
     addStarToRepository(repositoryId).then(mutationResult =>
       this.setState(resolveAddStarMutation(mutationResult)),
     );
@@ -222,8 +154,7 @@ class App extends Component {
           <Organization
             organization={organization}
             errors={errors}
-            onAddReactionToIssue={this.onAddReactionToIssue}
-            onAddStarToRepository={this.onAddStarToRepository}
+            onStarToRepository={this.onStarToRepository}
           />
         ) : (
           <p>No information yet ...</p>
@@ -236,8 +167,7 @@ class App extends Component {
 const Organization = ({
   organization,
   errors,
-  onAddReactionToIssue,
-  onAddStarToRepository,
+  onStarToRepository,
 }) => {
   if (errors) {
     return (
@@ -256,18 +186,13 @@ const Organization = ({
       </p>
       <Repository
         repository={organization.repository}
-        onAddReactionToIssue={onAddReactionToIssue}
-        onAddStarToRepository={onAddStarToRepository}
+        onStarToRepository={onStarToRepository}
       />
     </div>
   );
 };
 
-const Repository = ({
-  repository,
-  onAddReactionToIssue,
-  onAddStarToRepository,
-}) => (
+const Repository = ({ repository, onStarToRepository }) => (
   <div>
     <p>
       <strong>In Repository:</strong>
@@ -276,7 +201,7 @@ const Repository = ({
 
     <button
       type="button"
-      onClick={() => onAddStarToRepository(repository.id)}
+      onClick={() => onStarToRepository(repository.id)}
     >
       {repository.viewerHasStarred ? 'Unstar' : 'Star'}
     </button>
@@ -285,13 +210,6 @@ const Repository = ({
       {repository.issues.edges.map(issue => (
         <li key={issue.node.id}>
           <a href={issue.node.url}>{issue.node.title}</a>
-
-          <button
-            type="button"
-            onClick={() => onAddReactionToIssue(issue.node.id)}
-          >
-            Say "Horray"
-          </button>
 
           <ul>
             {issue.node.reactions.edges.map(reaction => (
