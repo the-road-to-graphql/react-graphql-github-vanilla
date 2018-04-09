@@ -10,9 +10,9 @@ const axiosGitHubGraphQL = axios.create({
   },
 });
 
-const title = 'React GraphQL GitHub Client';
+const TITLE = 'React GraphQL GitHub Client';
 
-const issuesOfRepositoryQuery = `
+const ISSUES_OF_REPOSITORY = `
   query (
     $organization: String!,
     $repository: String!,
@@ -56,7 +56,7 @@ const issuesOfRepositoryQuery = `
   }
 `;
 
-const addStarToRepositoryMutation = `
+const ADD_STAR = `
   mutation ($repositoryId: ID!) {
     addStar(input:{starrableId:$repositoryId}) {
       starrable {
@@ -66,7 +66,7 @@ const addStarToRepositoryMutation = `
   }
 `;
 
-const removeStarToRepositoryMutation = `
+const REMOVE_STAR = `
   mutation ($repositoryId: ID!) {
     removeStar(input:{starrableId:$repositoryId}) {
       starrable {
@@ -80,21 +80,21 @@ const getIssuesOfRepository = (path, cursor) => {
   const [organization, repository] = path.split('/');
 
   return axiosGitHubGraphQL.post('', {
-    query: issuesOfRepositoryQuery,
+    query: ISSUES_OF_REPOSITORY,
     variables: { organization, repository, cursor },
   });
 };
 
 const addStarToRepository = repositoryId => {
   return axiosGitHubGraphQL.post('', {
-    query: addStarToRepositoryMutation,
+    query: ADD_STAR,
     variables: { repositoryId },
   });
 };
 
 const removeStarFromRepository = repositoryId => {
   return axiosGitHubGraphQL.post('', {
-    query: removeStarToRepositoryMutation,
+    query: REMOVE_STAR,
     variables: { repositoryId },
   });
 };
@@ -224,7 +224,7 @@ class App extends Component {
 
     return (
       <div>
-        <h1>{title}</h1>
+        <h1>{TITLE}</h1>
 
         <form onSubmit={this.onSubmit}>
           <label htmlFor="url">
