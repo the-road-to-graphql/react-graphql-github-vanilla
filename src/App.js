@@ -12,7 +12,7 @@ const axiosGitHubGraphQL = axios.create({
 
 const TITLE = 'React GraphQL GitHub Client';
 
-const ISSUES_OF_REPOSITORY = `
+const GET_ISSUES_OF_REPOSITORY = `
   query (
     $organization: String!,
     $repository: String!,
@@ -80,7 +80,7 @@ const getIssuesOfRepository = (path, cursor) => {
   const [organization, repository] = path.split('/');
 
   return axiosGitHubGraphQL.post('', {
-    query: ISSUES_OF_REPOSITORY,
+    query: GET_ISSUES_OF_REPOSITORY,
     variables: { organization, repository, cursor },
   });
 };
