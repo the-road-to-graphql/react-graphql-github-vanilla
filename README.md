@@ -1,6 +1,6 @@
 # react-graphql-github-vanilla
 
-[![Slack](https://slack-the-road-to-learn-react.wieruch.com/badge.svg)](https://slack-the-road-to-learn-react.wieruch.com/)
+[![Build Status](https://travis-ci.org/the-road-to-graphql/react-graphql-github-vanilla.svg?branch=master)](https://travis-ci.org/the-road-to-graphql/react-graphql-github-vanilla) [![Slack](https://slack-the-road-to-learn-react.wieruch.com/badge.svg)](https://slack-the-road-to-learn-react.wieruch.com/)
 
 A simple React application consuming the GitHub GraphQL API with plain HTTP requests. [Read more about it over here](https://www.robinwieruch.de/react-with-graphql-tutorial).
 
