@@ -14,7 +14,7 @@ A simple React application consuming the GitHub GraphQL API with plain HTTP requ
 
 ## Installation
 
-* `git clone git@github.com:rwieruch/react-graphql-github-vanilla.git`
+* `git clone git@github.com:the-road-to-graphql/react-graphql-github-vanilla.git`
 * cd react-graphql-github-vanilla
 * npm install
 * [add your own REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN in .env file](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/)
