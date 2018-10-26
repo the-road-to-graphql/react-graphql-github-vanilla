@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import axios from 'axios';
 
+const TITLE = 'React GraphQL GitHub Client';
+
 const axiosGitHubGraphQL = axios.create({
   baseURL: 'https://api.github.com/graphql',
   headers: {
@@ -10,14 +12,8 @@ const axiosGitHubGraphQL = axios.create({
   },
 });
 
-const TITLE = 'React GraphQL GitHub Client';
-
 const GET_ISSUES_OF_REPOSITORY = `
-  query (
-    $organization: String!,
-    $repository: String!,
-    $cursor: String
-  ) {
+  query ($organization: String!, $repository: String!, $cursor: String) {
     organization(login: $organization) {
       name
       url
@@ -85,20 +81,6 @@ const getIssuesOfRepository = (path, cursor) => {
   });
 };
 
-const addStarToRepository = repositoryId => {
-  return axiosGitHubGraphQL.post('', {
-    query: ADD_STAR,
-    variables: { repositoryId },
-  });
-};
-
-const removeStarFromRepository = repositoryId => {
-  return axiosGitHubGraphQL.post('', {
-    query: REMOVE_STAR,
-    variables: { repositoryId },
-  });
-};
-
 const resolveIssuesQuery = (queryResult, cursor) => state => {
   const { data, errors } = queryResult.data;
 
@@ -128,6 +110,13 @@ const resolveIssuesQuery = (queryResult, cursor) => state => {
   };
 };
 
+const addStarToRepository = repositoryId => {
+  return axiosGitHubGraphQL.post('', {
+    query: ADD_STAR,
+    variables: { repositoryId },
+  });
+};
+
 const resolveAddStarMutation = mutationResult => state => {
   const {
     viewerHasStarred,
@@ -148,6 +137,13 @@ const resolveAddStarMutation = mutationResult => state => {
       },
     },
   };
+};
+
+const removeStarFromRepository = repositoryId => {
+  return axiosGitHubGraphQL.post('', {
+    query: REMOVE_STAR,
+    variables: { repositoryId },
+  });
 };
 
 const resolveRemoveStarMutation = mutationResult => state => {
@@ -199,6 +195,14 @@ class App extends Component {
     );
   };
 
+  onFetchMoreIssues = () => {
+    const {
+      endCursor,
+    } = this.state.organization.repository.issues.pageInfo;
+
+    this.onFetchFromGitHub(this.state.path, endCursor);
+  };
+
   onStarRepository = (repositoryId, viewerHasStarred) => {
     if (viewerHasStarred) {
       removeStarFromRepository(repositoryId).then(mutationResult =>
@@ -209,14 +213,6 @@ class App extends Component {
         this.setState(resolveAddStarMutation(mutationResult)),
       );
     }
-  };
-
-  onFetchMoreIssues = () => {
-    const {
-      endCursor,
-    } = this.state.organization.repository.issues.pageInfo;
-
-    this.onFetchFromGitHub(this.state.path, endCursor);
   };
 
   render() {
@@ -246,8 +242,8 @@ class App extends Component {
           <Organization
             organization={organization}
             errors={errors}
-            onStarRepository={this.onStarRepository}
             onFetchMoreIssues={this.onFetchMoreIssues}
+            onStarRepository={this.onStarRepository}
           />
         ) : (
           <p>No information yet ...</p>
@@ -260,8 +256,8 @@ class App extends Component {
 const Organization = ({
   organization,
   errors,
-  onStarRepository,
   onFetchMoreIssues,
+  onStarRepository,
 }) => {
   if (errors) {
     return (
@@ -280,8 +276,8 @@ const Organization = ({
       </p>
       <Repository
         repository={organization.repository}
-        onStarRepository={onStarRepository}
         onFetchMoreIssues={onFetchMoreIssues}
+        onStarRepository={onStarRepository}
       />
     </div>
   );
@@ -289,8 +285,8 @@ const Organization = ({
 
 const Repository = ({
   repository,
-  onStarRepository,
   onFetchMoreIssues,
+  onStarRepository,
 }) => (
   <div>
     <p>
@@ -308,17 +304,8 @@ const Repository = ({
       {repository.viewerHasStarred ? ' Unstar' : ' Star'}
     </button>
 
-    <Issues
-      issues={repository.issues}
-      onFetchMoreIssues={onFetchMoreIssues}
-    />
-  </div>
-);
-
-const Issues = ({ issues, onFetchMoreIssues }) => (
-  <div>
     <ul>
-      {issues.edges.map(issue => (
+      {repository.issues.edges.map(issue => (
         <li key={issue.node.id}>
           <a href={issue.node.url}>{issue.node.title}</a>
 
@@ -333,7 +320,7 @@ const Issues = ({ issues, onFetchMoreIssues }) => (
 
     <hr />
 
-    {issues.pageInfo.hasNextPage && (
+    {repository.issues.pageInfo.hasNextPage && (
       <button onClick={onFetchMoreIssues}>More</button>
     )}
   </div>
