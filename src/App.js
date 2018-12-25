@@ -184,7 +184,13 @@ class App extends Component {
   };
 
   onSubmit = event => {
-    this.onFetchFromGitHub(this.state.path);
+    if (this.state.path) {
+      this.onFetchFromGitHub(this.state.path);
+    } else {
+      this.setState({
+        errors: [{ message: 'Insert a valid search path.' }],
+      });
+    }
 
     event.preventDefault();
   };
